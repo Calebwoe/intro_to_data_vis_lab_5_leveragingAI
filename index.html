@@ -21,10 +21,16 @@
         .axis-label {
             font-size: 12px;
         }
+        button {
+            margin-right: 10px;
+            padding: 5px 10px;
+        }
     </style>
 </head>
 <body>
     <h1>Number of Countries by Region</h1>
+    <button id="smallBtn">Small Dataset</button>
+    <button id="largeBtn">Large Dataset</button>
     <svg width="900" height="500"></svg>
 
     <script>
@@ -33,69 +39,76 @@
         const height = +svg.attr("height") - 100;
         const margin = {top: 50, right: 50, bottom: 150, left: 80};
 
-        // CSV file (must be in the same folder as index.html)
-        const csvFile = "small_world.csv"; // or "large_world.csv"
+        // Function to draw chart from a given CSV
+        function drawChart(csvFile) {
+            d3.csv(csvFile).then(data => {
+                // Clear previous chart
+                svg.selectAll("*").remove();
 
-        d3.csv(csvFile).then(data => {
-            // Count number of countries per Region
-            const counts = d3.rollup(
-                data,
-                v => v.length,
-                d => d.Region
-            );
+                // Count number of countries per Region
+                const counts = d3.rollup(
+                    data,
+                    v => v.length,
+                    d => d.Region
+                );
 
-            // Convert to array of objects
-            const countArray = Array.from(counts, ([Region, Count]) => ({Region, Count}));
+                const countArray = Array.from(counts, ([Region, Count]) => ({Region, Count}));
+                countArray.sort((a, b) => b.Count - a.Count);
 
-            // Sort by count descending
-            countArray.sort((a, b) => b.Count - a.Count);
+                // X scale
+                const x = d3.scaleBand()
+                            .domain(countArray.map(d => d.Region))
+                            .range([margin.left, width])
+                            .padding(0.2);
 
-            // X scale
-            const x = d3.scaleBand()
-                        .domain(countArray.map(d => d.Region))
-                        .range([margin.left, width])
-                        .padding(0.2);
+                // Y scale
+                const y = d3.scaleLinear()
+                            .domain([0, d3.max(countArray, d => d.Count)])
+                            .nice()
+                            .range([height, margin.top]);
 
-            // Y scale
-            const y = d3.scaleLinear()
-                        .domain([0, d3.max(countArray, d => d.Count)])
-                        .nice()
-                        .range([height, margin.top]);
+                // Bars
+                svg.selectAll(".bar")
+                    .data(countArray)
+                    .join("rect")
+                    .attr("class", "bar")
+                    .attr("x", d => x(d.Region))
+                    .attr("y", d => y(d.Count))
+                    .attr("width", x.bandwidth())
+                    .attr("height", d => height - y(d.Count));
 
-            // Draw bars
-            svg.selectAll(".bar")
-                .data(countArray)
-                .join("rect")
-                .attr("class", "bar")
-                .attr("x", d => x(d.Region))
-                .attr("y", d => y(d.Count))
-                .attr("width", x.bandwidth())
-                .attr("height", d => height - y(d.Count));
+                // X axis
+                svg.append("g")
+                    .attr("transform", `translate(0,${height})`)
+                    .call(d3.axisBottom(x))
+                    .selectAll("text")
+                    .attr("transform", "rotate(-45)")
+                    .style("text-anchor", "end");
 
-            // X axis
-            svg.append("g")
-                .attr("transform", `translate(0,${height})`)
-                .call(d3.axisBottom(x))
-                .selectAll("text")
-                .attr("transform", "rotate(-45)")
-                .style("text-anchor", "end");
+                // Y axis
+                svg.append("g")
+                    .attr("transform", `translate(${margin.left},0)`)
+                    .call(d3.axisLeft(y));
 
-            // Y axis
-            svg.append("g")
-                .attr("transform", `translate(${margin.left},0)`)
-                .call(d3.axisLeft(y));
+                // Y axis label
+                svg.append("text")
+                    .attr("transform", "rotate(-90)")
+                    .attr("y", 20)
+                    .attr("x", -height/2)
+                    .attr("text-anchor", "middle")
+                    .attr("class", "axis-label")
+                    .text("Number of Countries");
+            }).catch(error => {
+                console.error("Error loading CSV:", error);
+            });
+        }
 
-            // Y axis label
-            svg.append("text")
-                .attr("transform", "rotate(-90)")
-                .attr("y", 20)
-                .attr("x", -height/2)
-                .attr("text-anchor", "middle")
-                .attr("class", "axis-label")
-                .text("Number of Countries");
-        }).catch(error => {
-            console.error("Error loading CSV:", error);
-        });
+        // Initial draw with small dataset
+        drawChart("small_world.csv");
+
+        // Button event listeners
+        d3.select("#smallBtn").on("click", () => drawChart("small_world.csv"));
+        d3.select("#largeBtn").on("click", () => drawChart("large_world.csv"));
     </script>
 </body>
 </html>
