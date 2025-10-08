@@ -70,7 +70,7 @@ function loadData(file) {
     const y = d3.scaleLinear()
       .domain([0, d3.max(regionData, d => d.GDP)])
       .nice()
-      .range([height - 70, 40]);
+      .range([height, 40]);
 
     const color = d3.scaleOrdinal(d3.schemeTableau10)
       .domain(regionData.map(d => d.Region));
@@ -79,7 +79,7 @@ function loadData(file) {
 
     // Axes (remove tick labels from x-axis)
     svg.append("g")
-      .attr("transform", `translate(0,${height - 70})`)
+      .attr("transform", `translate(0,${height})`)
 
     svg.append("g")
       .attr("transform", "translate(100,0)")
