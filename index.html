@@ -70,7 +70,7 @@ function loadData(file) {
     const y = d3.scaleLinear()
       .domain([0, d3.max(regionData, d => d.GDP)])
       .nice()
-      .range([height - 100, 40]);
+      .range([height - 70, 40]);
 
     const color = d3.scaleOrdinal(d3.schemeTableau10)
       .domain(regionData.map(d => d.Region));
@@ -79,8 +79,7 @@ function loadData(file) {
 
     // Axes (remove tick labels from x-axis)
     svg.append("g")
-      .attr("transform", `translate(0,${height - 100})`)
-      .call(d3.axisBottom(x).tickFormat(() => "")); // removes category labels
+      .attr("transform", `translate(0,${height - 70})`)
 
     svg.append("g")
       .attr("transform", "translate(100,0)")
@@ -127,7 +126,7 @@ function loadData(file) {
 
     // Legend below the chart
     const legend = svg.append("g")
-      .attr("transform", `translate(${width / 2 - 100}, ${height - 40})`);
+      .attr("transform", `translate(${width / 2 - 150 }, ${height - 460})`);
 
     const legendItems = legend.selectAll("g")
       .data(regionData)
