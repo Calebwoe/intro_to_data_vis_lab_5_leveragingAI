@@ -1,114 +1,128 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>World Development - Countries by Region</title>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        svg {
-            border: 1px solid #ccc;
-        }
-        .bar {
-            fill: steelblue;
-        }
-        .bar:hover {
-            fill: orange;
-        }
-        .axis-label {
-            font-size: 12px;
-        }
-        button {
-            margin-right: 10px;
-            padding: 5px 10px;
-        }
-    </style>
+<meta charset="UTF-8">
+<title>GDP per Capita by Region</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+  body {
+    font-family: sans-serif;
+    margin: 40px;
+    background: #fafafa;
+  }
+  h1 {
+    text-align: center;
+  }
+  #buttons {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  button {
+    margin: 0 5px;
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  svg {
+    display: block;
+    margin: auto;
+  }
+</style>
 </head>
 <body>
-    <h1>Number of Countries by Region</h1>
-    <button id="smallBtn">Small Dataset</button>
-    <button id="largeBtn">Large Dataset</button>
-    <svg width="900" height="500"></svg>
 
-    <script>
-        const svg = d3.select("svg");
-        const width = +svg.attr("width") - 100;
-        const height = +svg.attr("height") - 100;
-        const margin = {top: 50, right: 50, bottom: 150, left: 80};
+<h1>GDP per Capita by Region</h1>
+<div id="buttons">
+  <button id="small">Small World</button>
+  <button id="large">Large World</button>
+</div>
 
-        // Function to draw chart from a given CSV
-        function drawChart(csvFile) {
-            d3.csv(csvFile).then(data => {
-                // Clear previous chart
-                svg.selectAll("*").remove();
+<svg width="900" height="500"></svg>
 
-                // Count number of countries per Region
-                const counts = d3.rollup(
-                    data,
-                    v => v.length,
-                    d => d.Region
-                );
+<script>
+// SVG setup
+const svg = d3.select("svg");
+const width = +svg.attr("width");
+const height = +svg.attr("height");
+const margin = {top: 50, right: 40, bottom: 80, left: 80};
+const chartWidth = width - margin.left - margin.right;
+const chartHeight = height - margin.top - margin.bottom;
 
-                const countArray = Array.from(counts, ([Region, Count]) => ({Region, Count}));
-                countArray.sort((a, b) => b.Count - a.Count);
+const chart = svg.append("g")
+  .attr("transform", `translate(${margin.left},${margin.top})`);
 
-                // X scale
-                const x = d3.scaleBand()
-                            .domain(countArray.map(d => d.Region))
-                            .range([margin.left, width])
-                            .padding(0.2);
+const xScale = d3.scaleBand().padding(0.2).range([0, chartWidth]);
+const yScale = d3.scaleLinear().range([chartHeight, 0]);
 
-                // Y scale
-                const y = d3.scaleLinear()
-                            .domain([0, d3.max(countArray, d => d.Count)])
-                            .nice()
-                            .range([height, margin.top]);
+const xAxisGroup = chart.append("g")
+  .attr("transform", `translate(0,${chartHeight})`);
+const yAxisGroup = chart.append("g");
 
-                // Bars
-                svg.selectAll(".bar")
-                    .data(countArray)
-                    .join("rect")
-                    .attr("class", "bar")
-                    .attr("x", d => x(d.Region))
-                    .attr("y", d => y(d.Count))
-                    .attr("width", x.bandwidth())
-                    .attr("height", d => height - y(d.Count));
+function loadData(file) {
+  d3.csv(file).then(data => {
+    // Ensure numeric conversion and drop missing
+    data = data.filter(d => d.Region && d['GDP per capita (current US$)'])
+               .map(d => ({
+                 Region: d.Region,
+                 GDP: +d['GDP per capita (current US$)']
+               }));
 
-                // X axis
-                svg.append("g")
-                    .attr("transform", `translate(0,${height})`)
-                    .call(d3.axisBottom(x))
-                    .selectAll("text")
-                    .attr("transform", "rotate(-45)")
-                    .style("text-anchor", "end");
+    // Group by region and compute mean GDP
+    const avgByRegion = Array.from(
+      d3.group(data, d => d.Region),
+      ([region, values]) => ({
+        Region: region,
+        AvgGDP: d3.mean(values, v => v.GDP)
+      })
+    );
 
-                // Y axis
-                svg.append("g")
-                    .attr("transform", `translate(${margin.left},0)`)
-                    .call(d3.axisLeft(y));
+    // Update scales
+    xScale.domain(avgByRegion.map(d => d.Region));
+    yScale.domain([0, d3.max(avgByRegion, d => d.AvgGDP)]);
 
-                // Y axis label
-                svg.append("text")
-                    .attr("transform", "rotate(-90)")
-                    .attr("y", 20)
-                    .attr("x", -height/2)
-                    .attr("text-anchor", "middle")
-                    .attr("class", "axis-label")
-                    .text("Number of Countries");
-            }).catch(error => {
-                console.error("Error loading CSV:", error);
-            });
-        }
+    // Axes
+    xAxisGroup.transition().call(d3.axisBottom(xScale))
+      .selectAll("text")
+      .attr("transform", "rotate(-45)")
+      .style("text-anchor", "end");
 
-        // Initial draw with small dataset
-        drawChart("small_world.csv");
+    yAxisGroup.transition().call(d3.axisLeft(yScale).tickFormat(d3.format("$.2s")));
 
-        // Button event listeners
-        d3.select("#smallBtn").on("click", () => drawChart("small_world.csv"));
-        d3.select("#largeBtn").on("click", () => drawChart("large_world.csv"));
-    </script>
+    // Bars
+    const bars = chart.selectAll(".bar")
+      .data(avgByRegion, d => d.Region);
+
+    bars.enter()
+      .append("rect")
+      .attr("class", "bar")
+      .attr("x", d => xScale(d.Region))
+      .attr("width", xScale.bandwidth())
+      .attr("y", chartHeight)
+      .attr("height", 0)
+      .attr("fill", "steelblue")
+      .transition()
+      .duration(800)
+      .attr("y", d => yScale(d.AvgGDP))
+      .attr("height", d => chartHeight - yScale(d.AvgGDP));
+
+    bars.transition()
+      .duration(800)
+      .attr("x", d => xScale(d.Region))
+      .attr("width", xScale.bandwidth())
+      .attr("y", d => yScale(d.AvgGDP))
+      .attr("height", d => chartHeight - yScale(d.AvgGDP));
+
+    bars.exit().remove();
+  });
+}
+
+// Default load small dataset
+loadData("small_world.csv");
+
+// Button behavior
+d3.select("#small").on("click", () => loadData("small_world.csv"));
+d3.select("#large").on("click", () => loadData("large_world.csv"));
+
+</script>
 </body>
 </html>
