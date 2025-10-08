@@ -50,20 +50,18 @@ const svg = d3.select("body")
 
 function loadData(file) {
   d3.csv(file).then(rawData => {
-    // Clean and prepare data
-    const data = rawData.filter(d => d.Region && d.X2020 && !isNaN(+d.X2020))
+    const data = rawData
+      .filter(d => d.Region && d.X2020 && !isNaN(+d.X2020))
       .map(d => ({
         Region: d.Region,
         GDP: +d.X2020
       }));
 
-    // Aggregate average GDP per region
     const regionData = Array.from(
       d3.rollup(data, v => d3.mean(v, d => d.GDP), d => d.Region),
       ([Region, GDP]) => ({ Region, GDP })
     );
 
-    // Scales
     const x = d3.scaleBand()
       .domain(regionData.map(d => d.Region))
       .range([100, width - 100])
@@ -72,22 +70,17 @@ function loadData(file) {
     const y = d3.scaleLinear()
       .domain([0, d3.max(regionData, d => d.GDP)])
       .nice()
-      .range([height - 80, 40]);
+      .range([height - 100, 40]);
 
     const color = d3.scaleOrdinal(d3.schemeTableau10)
       .domain(regionData.map(d => d.Region));
 
-    // Clear old chart
     svg.selectAll("*").remove();
 
-    // Axes
+    // Axes (remove tick labels from x-axis)
     svg.append("g")
-      .attr("transform", `translate(0,${height - 80})`)
-      .call(d3.axisBottom(x))
-      .selectAll("text")
-      .attr("transform", "rotate(-20)")
-      .attr("text-anchor", "end")
-      .attr("font-size", "12px");
+      .attr("transform", `translate(0,${height - 100})`)
+      .call(d3.axisBottom(x).tickFormat(() => "")); // removes category labels
 
     svg.append("g")
       .attr("transform", "translate(100,0)")
@@ -96,7 +89,7 @@ function loadData(file) {
     // Axis labels
     svg.append("text")
       .attr("x", width / 2)
-      .attr("y", height - 30)
+      .attr("y", height - 60)
       .attr("text-anchor", "middle")
       .attr("font-size", "14px")
       .text("Region");
@@ -117,7 +110,7 @@ function loadData(file) {
       .attr("x", d => x(d.Region))
       .attr("y", d => y(d.GDP))
       .attr("width", x.bandwidth())
-      .attr("height", d => height - 80 - y(d.GDP))
+      .attr("height", d => height - 100 - y(d.GDP))
       .attr("fill", d => color(d.Region));
 
     // Value labels
@@ -132,32 +125,29 @@ function loadData(file) {
       .attr("font-size", "11px")
       .text(d => d3.format(",.0f")(d.GDP));
 
-    // Legend
+    // Legend below the chart
     const legend = svg.append("g")
-      .attr("transform", `translate(${width - 180},40)`);
+      .attr("transform", `translate(${width / 2 - 100}, ${height - 40})`);
 
-    legend.selectAll("rect")
+    const legendItems = legend.selectAll("g")
       .data(regionData)
       .enter()
-      .append("rect")
-      .attr("x", 0)
-      .attr("y", (d, i) => i * 20)
+      .append("g")
+      .attr("transform", (d, i) => `translate(${(i % 3) * 150}, ${Math.floor(i / 3) * 20})`);
+
+    legendItems.append("rect")
       .attr("width", 12)
       .attr("height", 12)
       .attr("fill", d => color(d.Region));
 
-    legend.selectAll("text")
-      .data(regionData)
-      .enter()
-      .append("text")
+    legendItems.append("text")
       .attr("x", 18)
-      .attr("y", (d, i) => i * 20 + 10)
+      .attr("y", 10)
       .attr("font-size", "11px")
       .text(d => d.Region);
   });
 }
 
-// Default and buttons
 loadData("small_world.csv");
 d3.select("#small").on("click", () => loadData("small_world.csv"));
 d3.select("#large").on("click", () => loadData("large_world.csv"));
