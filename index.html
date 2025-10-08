@@ -30,5 +30,68 @@
     <script>
         const svg = d3.select("svg");
         const width = +svg.attr("width") - 100;
-        const height = +s
+        const height = +svg.attr("height") - 100;
+        const margin = {top: 50, right: 50, bottom: 100, left: 80};
 
+        // CHANGE THIS LINE to small_world.csv or large_world.csv
+        const csvFile = "small_world.csv";
+
+        d3.csv(csvFile).then(data => {
+            console.log(data); // Check your columns
+
+            // Convert numeric column to number
+            data.forEach(d => {
+                d.LifeExpectancy = +d.LifeExpectancy; // Replace with your column name
+            });
+
+            // Optionally sort and take top 10
+            const topData = data.sort((a, b) => b.LifeExpectancy - a.LifeExpectancy).slice(0, 10);
+
+            // X scale
+            const x = d3.scaleBand()
+                        .domain(topData.map(d => d.Country)) // Replace with your column name
+                        .range([margin.left, width])
+                        .padding(0.1);
+
+            // Y scale
+            const y = d3.scaleLinear()
+                        .domain([0, d3.max(topData, d => d.LifeExpectancy)])
+                        .range([height, margin.top]);
+
+            // Bars
+            svg.selectAll(".bar")
+                .data(topData)
+                .join("rect")
+                .attr("class", "bar")
+                .attr("x", d => x(d.Country))
+                .attr("y", d => y(d.LifeExpectancy))
+                .attr("width", x.bandwidth())
+                .attr("height", d => height - y(d.LifeExpectancy));
+
+            // X axis
+            svg.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x))
+                .selectAll("text")
+                .attr("transform", "rotate(-45)")
+                .style("text-anchor", "end");
+
+            // Y axis
+            svg.append("g")
+                .attr("transform", `translate(${margin.left},0)`)
+                .call(d3.axisLeft(y));
+
+            // Y axis label
+            svg.append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("y", 20)
+                .attr("x", -height/2)
+                .attr("text-anchor", "middle")
+                .attr("class", "axis-label")
+                .text("Life Expectancy");
+        }).catch(error => {
+            console.error("Error loading CSV:", error);
+        });
+    </script>
+</body>
+</html>
