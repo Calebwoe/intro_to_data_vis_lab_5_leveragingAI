@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>World Development Visualization</title>
+    <!-- D3.js CDN -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        /* You can put all CSS here */
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .bar {
+            fill: steelblue;
+        }
+        .bar:hover {
+            fill: orange;
+        }
+        .axis-label {
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>World Development Visualization</h1>
+    <!-- Container for the chart -->
+    <svg width="800" height="500"></svg>
+
+    <script>
+        // D3 code goes here
+
+        // Set dimensions
+        const svg = d3.select("svg");
+        const width = +svg.attr("width") - 100;
+        const height = +svg.attr("height") - 100;
+        const margin = {top: 50, right: 50, bottom: 50, left: 80};
+
+        // Load CSV
+        d3.csv("data1/small_world.csv").then(data => {
+            console.log(data); // Check the loaded data
+
+            // Example: convert a column to numeric
+            data.forEach(d => {
+                d.GDP = +d.GDP; // Replace "GDP" with your actual column name
+            });
+
+            // Create scales
+            const x = d3.scaleBand()
+                        .domain(data.map(d => d.Country)) // Replace "Country" with your column
+                        .range([margin.left, width])
+                        .padding(0.1);
+
+            const y = d3.scaleLinear()
+                        .domain([0, d3.max(data, d => d.GDP)]) // Replace "GDP"
+                        .range([height, margin.top]);
+
+            // Draw bars
+            svg.selectAll(".bar")
+                .data(data)
+                .join("rect")
+                .attr("class", "bar")
+                .attr("x", d => x(d.Country))
+                .attr("y", d => y(d.GDP))
+                .attr("width", x.bandwidth())
+                .attr("height", d => height - y(d.GDP));
+
+            // X axis
+            svg.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x))
+                .selectAll("text")
+                .attr("transform", "rotate(-45)")
+                .style("text-anchor", "end");
+
+            // Y axis
+            svg.append("g")
+                .attr("transform", `translate(${margin.left},0)`)
+                .call(d3.axisLeft(y));
+        });
+    </script>
+</body>
+</html>
