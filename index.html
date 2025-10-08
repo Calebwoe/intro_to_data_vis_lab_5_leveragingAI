@@ -39,24 +39,14 @@
 
 <svg width="900" height="500"></svg>
 
+<script src="https://d3js.org/d3.v7.min.js"></script>
 <script>
-// SVG setup
-const svg = d3.select("svg");
-const width = +svg.attr("width");
-const height = +svg.attr("height");
-const margin = {top: 50, right: 40, bottom: 80, left: 80};
-const chartWidth = width - margin.left - margin.right;
-const chartHeight = height - margin.top - margin.bottom;
-
-const chart = svg.append("g")
-  .attr("transform", `translate(${margin.left},${margin.top})`);
-
-const xScale = d3.scaleBand().padding(0.2).range([0, chartWidth]);
-const yScale = d3.scaleLinear().range([chartHeight, 0]);
-
-const xAxisGroup = chart.append("g")
-  .attr("transform", `translate(0,${chartHeight})`);
-const yAxisGroup = chart.append("g");
+const width = 800;
+const height = 500;
+const svg = d3.select("body")
+  .append("svg")
+  .attr("width", width)
+  .attr("height", height);
 
 function loadData(file) {
   d3.csv(file).then(rawData => {
@@ -73,27 +63,51 @@ function loadData(file) {
       ([Region, GDP]) => ({ Region, GDP })
     );
 
-    // Set up scales
+    // Scales
     const x = d3.scaleBand()
       .domain(regionData.map(d => d.Region))
-      .range([60, width - 20])
-      .padding(0.2);
+      .range([100, width - 100])
+      .padding(0.3);
 
     const y = d3.scaleLinear()
       .domain([0, d3.max(regionData, d => d.GDP)])
-      .range([height - 40, 20]);
+      .nice()
+      .range([height - 80, 40]);
+
+    const color = d3.scaleOrdinal(d3.schemeTableau10)
+      .domain(regionData.map(d => d.Region));
 
     // Clear old chart
     svg.selectAll("*").remove();
 
     // Axes
     svg.append("g")
-      .attr("transform", `translate(0,${height - 40})`)
-      .call(d3.axisBottom(x));
+      .attr("transform", `translate(0,${height - 80})`)
+      .call(d3.axisBottom(x))
+      .selectAll("text")
+      .attr("transform", "rotate(-20)")
+      .attr("text-anchor", "end")
+      .attr("font-size", "12px");
 
     svg.append("g")
-      .attr("transform", "translate(60,0)")
+      .attr("transform", "translate(100,0)")
       .call(d3.axisLeft(y));
+
+    // Axis labels
+    svg.append("text")
+      .attr("x", width / 2)
+      .attr("y", height - 30)
+      .attr("text-anchor", "middle")
+      .attr("font-size", "14px")
+      .text("Region");
+
+    svg.append("text")
+      .attr("x", -height / 2)
+      .attr("y", 40)
+      .attr("transform", "rotate(-90)")
+      .attr("text-anchor", "middle")
+      .attr("font-size", "14px")
+      .text("Average GDP per Capita (2020, US$)");
 
     // Bars
     svg.selectAll("rect")
@@ -103,11 +117,11 @@ function loadData(file) {
       .attr("x", d => x(d.Region))
       .attr("y", d => y(d.GDP))
       .attr("width", x.bandwidth())
-      .attr("height", d => height - 40 - y(d.GDP))
-      .attr("fill", "steelblue");
+      .attr("height", d => height - 80 - y(d.GDP))
+      .attr("fill", d => color(d.Region));
 
-    // Labels
-    svg.selectAll("text.label")
+    // Value labels
+    svg.selectAll(".label")
       .data(regionData)
       .enter()
       .append("text")
@@ -115,17 +129,38 @@ function loadData(file) {
       .attr("x", d => x(d.Region) + x.bandwidth() / 2)
       .attr("y", d => y(d.GDP) - 5)
       .attr("text-anchor", "middle")
+      .attr("font-size", "11px")
       .text(d => d3.format(",.0f")(d.GDP));
+
+    // Legend
+    const legend = svg.append("g")
+      .attr("transform", `translate(${width - 180},40)`);
+
+    legend.selectAll("rect")
+      .data(regionData)
+      .enter()
+      .append("rect")
+      .attr("x", 0)
+      .attr("y", (d, i) => i * 20)
+      .attr("width", 12)
+      .attr("height", 12)
+      .attr("fill", d => color(d.Region));
+
+    legend.selectAll("text")
+      .data(regionData)
+      .enter()
+      .append("text")
+      .attr("x", 18)
+      .attr("y", (d, i) => i * 20 + 10)
+      .attr("font-size", "11px")
+      .text(d => d.Region);
   });
 }
 
-// Default load small dataset
+// Default and buttons
 loadData("small_world.csv");
-
-// Button behavior
 d3.select("#small").on("click", () => loadData("small_world.csv"));
 d3.select("#large").on("click", () => loadData("large_world.csv"));
-
 </script>
 </body>
 </html>
