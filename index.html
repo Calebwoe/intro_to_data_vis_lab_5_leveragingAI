@@ -59,60 +59,63 @@ const xAxisGroup = chart.append("g")
 const yAxisGroup = chart.append("g");
 
 function loadData(file) {
-  d3.csv(file).then(data => {
-    // Ensure numeric conversion and drop missing
-    data = data.filter(d => d.Region && d['GDP per capita (current US$)'])
-               .map(d => ({
-                 Region: d.Region,
-                 GDP: +d['GDP per capita (current US$)']
-               }));
+  d3.csv(file).then(rawData => {
+    // Clean and prepare data
+    const data = rawData.filter(d => d.Region && d.X2020 && !isNaN(+d.X2020))
+      .map(d => ({
+        Region: d.Region,
+        GDP: +d.X2020
+      }));
 
-    // Group by region and compute mean GDP
-    const avgByRegion = Array.from(
-      d3.group(data, d => d.Region),
-      ([region, values]) => ({
-        Region: region,
-        AvgGDP: d3.mean(values, v => v.GDP)
-      })
+    // Aggregate average GDP per region
+    const regionData = Array.from(
+      d3.rollup(data, v => d3.mean(v, d => d.GDP), d => d.Region),
+      ([Region, GDP]) => ({ Region, GDP })
     );
 
-    // Update scales
-    xScale.domain(avgByRegion.map(d => d.Region));
-    yScale.domain([0, d3.max(avgByRegion, d => d.AvgGDP)]);
+    // Set up scales
+    const x = d3.scaleBand()
+      .domain(regionData.map(d => d.Region))
+      .range([60, width - 20])
+      .padding(0.2);
+
+    const y = d3.scaleLinear()
+      .domain([0, d3.max(regionData, d => d.GDP)])
+      .range([height - 40, 20]);
+
+    // Clear old chart
+    svg.selectAll("*").remove();
 
     // Axes
-    xAxisGroup.transition().call(d3.axisBottom(xScale))
-      .selectAll("text")
-      .attr("transform", "rotate(-45)")
-      .style("text-anchor", "end");
+    svg.append("g")
+      .attr("transform", `translate(0,${height - 40})`)
+      .call(d3.axisBottom(x));
 
-    yAxisGroup.transition().call(d3.axisLeft(yScale).tickFormat(d3.format("$.2s")));
+    svg.append("g")
+      .attr("transform", "translate(60,0)")
+      .call(d3.axisLeft(y));
 
     // Bars
-    const bars = chart.selectAll(".bar")
-      .data(avgByRegion, d => d.Region);
-
-    bars.enter()
+    svg.selectAll("rect")
+      .data(regionData)
+      .enter()
       .append("rect")
-      .attr("class", "bar")
-      .attr("x", d => xScale(d.Region))
-      .attr("width", xScale.bandwidth())
-      .attr("y", chartHeight)
-      .attr("height", 0)
-      .attr("fill", "steelblue")
-      .transition()
-      .duration(800)
-      .attr("y", d => yScale(d.AvgGDP))
-      .attr("height", d => chartHeight - yScale(d.AvgGDP));
+      .attr("x", d => x(d.Region))
+      .attr("y", d => y(d.GDP))
+      .attr("width", x.bandwidth())
+      .attr("height", d => height - 40 - y(d.GDP))
+      .attr("fill", "steelblue");
 
-    bars.transition()
-      .duration(800)
-      .attr("x", d => xScale(d.Region))
-      .attr("width", xScale.bandwidth())
-      .attr("y", d => yScale(d.AvgGDP))
-      .attr("height", d => chartHeight - yScale(d.AvgGDP));
-
-    bars.exit().remove();
+    // Labels
+    svg.selectAll("text.label")
+      .data(regionData)
+      .enter()
+      .append("text")
+      .attr("class", "label")
+      .attr("x", d => x(d.Region) + x.bandwidth() / 2)
+      .attr("y", d => y(d.GDP) - 5)
+      .attr("text-anchor", "middle")
+      .text(d => d3.format(",.0f")(d.GDP));
   });
 }
 
