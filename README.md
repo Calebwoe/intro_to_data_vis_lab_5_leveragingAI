@@ -1,6 +1,8 @@
 # intro_to_data_vis_lab_5_leveragingAI
 This is my 5th lab for the intro to data visualization class. In this class we are assigned to work with AI to create some visualizations given data.
 
+Link to AI Chat: https://chatgpt.com/share/68e701b9-b6d4-800c-b626-c208c0f01049
+
 (You, 10 points) data preparation. Generate the small and the large scale CSV.  
   
   I did the data preparation in R, the code will be attatched as a screenshot.
