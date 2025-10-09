@@ -5,28 +5,13 @@
 <title>GDP per Capita by Region</title>
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <style>
-  body {
-    font-family: sans-serif;
-    margin: 40px;
-    background: #fafafa;
-  }
-  h1 {
-    text-align: center;
-  }
-  #buttons {
-    text-align: center;
-    margin-bottom: 20px;
-  }
-  button {
-    margin: 0 5px;
-    padding: 8px 16px;
-    font-size: 14px;
-    cursor: pointer;
-  }
-  svg {
-    display: block;
-    margin: auto;
-  }
+  body { font-family: sans-serif; margin: 20px; background: #fafafa; }
+  h1 { text-align: center; }
+  #buttons { text-align: center; margin-bottom: 18px; }
+  button { margin: 0 5px; padding: 8px 16px; font-size: 14px; cursor: pointer; }
+  svg { display: block; margin: auto; }
+  #legend { text-align: center; margin-bottom: 18px; }
+  .legend-item { display: inline-block; margin-right: 20px; }
 </style>
 </head>
 <body>
@@ -36,15 +21,13 @@
   <button id="small">Small World</button>
   <button id="large">Large World</button>
 </div>
-
+<div id="legend"></div>
 <svg width="900" height="500"></svg>
 
-<script src="https://d3js.org/d3.v7.min.js"></script>
 <script>
 const width = 800;
 const height = 500;
-const svg = d3.select("body")
-  .append("svg")
+const svg = d3.select("svg")
   .attr("width", width)
   .attr("height", height);
 
@@ -57,21 +40,17 @@ function loadData(file) {
         GDP: +d.X2020
       }));
 
-    // average GDP per region
     const regionData = Array.from(
       d3.rollup(data, v => d3.mean(v, d => d.GDP), d => d.Region),
       ([Region, GDP]) => ({ Region, GDP })
     );
 
-    // Clear old chart
     svg.selectAll("*").remove();
 
-    // Layout constants
     const margin = { top: 40, right: 40, bottom: 100, left: 100 };
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
-    // Scales
     const x = d3.scaleBand()
       .domain(regionData.map(d => d.Region))
       .range([0, innerWidth])
@@ -85,19 +64,16 @@ function loadData(file) {
     const color = d3.scaleOrdinal(d3.schemeTableau10)
       .domain(regionData.map(d => d.Region));
 
-    // Chart group
     const chart = svg.append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    // Axes
     chart.append("g")
       .attr("transform", `translate(0,${innerHeight})`)
-      .call(d3.axisBottom(x).tickFormat(() => "")); // keep blank x labels
+      .call(d3.axisBottom(x).tickFormat(() => ""));
 
     chart.append("g")
       .call(d3.axisLeft(y));
 
-    // Bars
     chart.selectAll("rect")
       .data(regionData)
       .enter()
@@ -108,7 +84,6 @@ function loadData(file) {
       .attr("height", d => innerHeight - y(d.GDP))
       .attr("fill", d => color(d.Region));
 
-    // Value labels
     chart.selectAll(".label")
       .data(regionData)
       .enter()
@@ -120,7 +95,6 @@ function loadData(file) {
       .attr("font-size", "11px")
       .text(d => d3.format(",.0f")(d.GDP));
 
-    // Axis titles
     svg.append("text")
       .attr("x", width / 2)
       .attr("y", height - 40)
@@ -136,26 +110,26 @@ function loadData(file) {
       .attr("font-size", "14px")
       .text("Average GDP per Capita (2020, US$)");
 
-    // Legend BELOW the chart, separated from bars
-    const legend = svg.append("g")
-      .attr("transform", `translate(${margin.left}, ${height - 60})`);
-
-    const legendItems = legend.selectAll("g")
+    // Legend above chart, outside SVG
+    const legendDiv = d3.select("#legend");
+    legendDiv.html("");
+    const legendItems = legendDiv.selectAll(".legend-item")
       .data(regionData)
       .enter()
-      .append("g")
-      .attr("transform", (d, i) => `translate(${(i % 4) * 150}, ${Math.floor(i / 4) * 20})`);
+      .append("div")
+      .attr("class", "legend-item");
 
-    legendItems.append("rect")
-      .attr("width", 12)
-      .attr("height", 12)
-      .attr("fill", d => color(d.Region));
+    legendItems.append("span")
+      .style("display", "inline-block")
+      .style("width", "12px")
+      .style("height", "12px")
+      .style("background-color", d => color(d.Region))
+      .style("vertical-align", "middle")
+      .style("margin-right", "6px");
 
-    legendItems.append("text")
-      .attr("x", 18)
-      .attr("y", 10)
-      .attr("font-size", "11px")
-      .text(d => d.Region);
+    legendItems.append("span")
+      .text(d => d.Region)
+      .style("font-size", "12px");
   });
 }
 loadData("small_world.csv");
