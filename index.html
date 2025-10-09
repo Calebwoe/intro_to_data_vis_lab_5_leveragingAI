@@ -10,8 +10,10 @@
   #buttons { text-align: center; margin-bottom: 18px; }
   button { margin: 0 5px; padding: 8px 16px; font-size: 14px; cursor: pointer; }
   svg { display: block; margin: auto; }
-  #legend { text-align: center; margin-bottom: 18px; }
-  .legend-item { display: inline-block; margin-right: 20px; }
+  #legend { text-align: center; margin-bottom: 18px; 
+          }
+  .legend-item { display: inline-block; margin-right: 20px; 
+               }
 </style>
 </head>
 <body>
@@ -117,7 +119,9 @@ function loadData(file) {
       .data(regionData)
       .enter()
       .append("div")
-      .attr("class", "legend-item");
+      .attr("class", "legend-item")
+      .style("display", "inline-block")
+      .style("margin-right","20px");
 
     legendItems.append("span")
       .style("display", "inline-block")
